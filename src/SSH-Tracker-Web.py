@@ -1,7 +1,9 @@
 import tornado.ioloop
 import tornado.web
-from AddEventHandler import AddEventHandler
+
+from src import AddEventHandler
 from EventSocket import EventSocket
+
 
 class MainHandler(tornado.web.RequestHandler):
     def get(self):

@@ -1,6 +1,9 @@
-import tornado.web
 import json
-from EventCoordinator import COORDINATOR
+
+import tornado.web
+
+from src.EventCoordinator import COORDINATOR
+
 
 class AddEventHandler(tornado.web.RequestHandler):
 

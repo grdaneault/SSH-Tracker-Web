@@ -1,6 +1,9 @@
-from tornado import websocket
-from EventCoordinator import COORDINATOR
 import json
+
+from tornado import websocket
+
+from src.EventCoordinator import COORDINATOR
+
 
 class EventSocket(websocket.WebSocketHandler):
     def open(self):
