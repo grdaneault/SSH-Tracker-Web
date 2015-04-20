@@ -9,11 +9,9 @@ class EventSocket(websocket.WebSocketHandler):
     def open(self):
         print("Started Websocket")
         COORDINATOR.register(self)
-        self.write_message("Welcome")
 
     def on_message(self, message):
-        print("Got data %s" % message);
-        self.write_message(message)
+        pass
 
     def on_close(self):
         print("Socket closed")
@@ -21,4 +19,4 @@ class EventSocket(websocket.WebSocketHandler):
 
     def accept(self, event):
         print("Sending event!")
-        self.write_message("event: %s" % json.dumps(event))
+        self.write_message(event.jsonify())

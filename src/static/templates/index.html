@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>{{ title }}</title>
+
+    <link href="/static/css/jBox.css" rel="stylesheet">
+    <script src="//code.jquery.com/jquery-1.11.2.min.js"></script>
+    <script src="/static/js/third-party/jBox.min.js"></script>
+    <style>
+        body {
+            background-color: #161616;
+            font-family: Arial, Verdana, sans-serif;
+        }
+        
+        #top-passwords {
+            position: absolute;
+            top: 50px;
+            left: 50px;
+            background-color: #FFF;
+        }
+    </style>
+    <script id="top-password-template" type="text/x-handlebars-template">
+        <table>
+            <thead>
+            <th>Password</th>
+            <th>Count</th>
+            </thead>
+            <tbody>
+            {{!#topPasswords}}
+            <tr>
+                <td>{{!password}}</td>
+                <td>{{!count}}</td>
+            </tr>
+            {{!/topPasswords}}
+            </tbody>
+        </table>
+    </script>
+</head>
+<body>
+
+<script src="//cdnjs.cloudflare.com/ajax/libs/d3/3.5.3/d3.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/topojson/1.6.9/topojson.min.js"></script>
+<script src="/static/js/third-party/datamaps.world.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/handlebars.js/3.0.1/handlebars.js"></script>
+<div id="container"></div>
+<script>
+    (function() {
+
+        var tpl = $("#top-password-template");
+        var topPasswordsTpl = Handlebars.compile(tpl.html());
+
+
+        var topIps = [];
+        var topCountries = [];
+        var topPasswords = [];
+        var topUsers = [];
+
+        var MAX_IPS = 10;
+        var MAX_COUNTRIES = 10;
+        var MAX_PASSWORDS = 10;
+        var MAX_USERS = 10;
+
+        var allIps = {};
+        var allCountries = {};
+        var allPasswords = {};
+        var allUsers = {};
+
+        var map = new Datamap({
+            element: document.getElementById('container'),
+            responsive: true,
+            geographyConfig: {
+                borderColor: "#000",
+                popupTemplate: function(geo, data) {
+                    return '<div class="hoverinfo"><strong>' + geo.properties.name + '</strong> <br />' + ((data && data.count) || 0) + ' attacks </div>';
+                }
+            },
+            fills: {
+                defaultFill: "#E6F5E6"
+            },
+            data: {}
+        });
+        //alternatively with d3
+        d3.select(window).on('resize', function () {
+            map.resize();
+        });
+
+        var ws = new WebSocket("ws://localhost:8888/events");
+        ws.onopen = function() {
+            ws.send("Hello, world\n");
+        };
+
+        var arcs = [];
+
+
+        var num_attacks = 0;
+        ws.onmessage = function (evt) {
+            console.log(evt.data);
+            var attempt = JSON.parse(evt.data);
+
+            num_attacks += 1;
+
+            if (allPasswords[attempt.password]) {
+                allPasswords[attempt.password].count += 1;
+                if (!allPasswords[attempt.password].isTop && topPasswords[MAX_PASSWORDS  -1].count < allPasswords[attempt.password].count) {
+                    topPasswords[MAX_PASSWORDS  -1].isTop = false;
+                    topPasswords.splice(MAX_PASSWORDS - 1, 1);
+                    topPasswords.push(allPasswords[attempt.password]);
+                    allPasswords[attempt.password].isTop = true;
+                }
+            } else {
+                allPasswords[attempt.password] = {
+                    password: attempt.password,
+                    count: 1,
+                    isTop: topPasswords.length < MAX_PASSWORDS
+                };
+
+                if (allPasswords[attempt.password].isTop) {
+                    topPasswords.push(allPasswords[attempt.password]);
+                }
+            }
+
+            topPasswords.sort(function(a, b) {
+                return b.count - a.count;
+            });
+
+            $("#top-passwords").html(topPasswordsTpl({topPasswords: topPasswords}));
+
+
+            if (allCountries[attempt.attacker.country]) {
+                allCountries[attempt.attacker.country].count += 1
+            } else {
+                allCountries[attempt.attacker.country] = {
+                    name: allCountries[attempt.attacker.country],
+                    count: 1
+                }
+            }
+
+            var colors = d3.scale.linear()
+                    .domain([num_attacks, num_attacks / 3, 0])
+                    .range(["#CC0000", "#CC7A29", "#CCCC00"]);
+
+            var coloring = {};
+
+            for (var country in allCountries) {
+                coloring[country] = {
+                    color: colors(allCountries[country].count),
+                    count: allCountries[country].count
+                };
+            }
+            map.updateChoropleth(coloring);
+
+            new jBox('Notice', {
+                content: 'Attack from ' + attempt.attacker.ip + '.'
+            });
+
+            arcs.push({
+                origin: {
+                    latitude: attempt.attacker.latitude,
+                    longitude: attempt.attacker.longitude
+                },
+                destination: {
+                    latitude: attempt.target.latitude,
+                    longitude: attempt.target.longitude
+                }
+            });
+
+            map.arc(arcs);
+        };
+
+    })();
+
+</script>
+<div id="top-passwords" style="position:absolute; top: 10px; left 10px;">
+</div>
+</body>
+</html>
