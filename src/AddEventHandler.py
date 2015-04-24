@@ -39,6 +39,6 @@ class AddEventHandler(tornado.web.RequestHandler):
                         event.get("city", ""),
                         event.get("longitude", random.randrange(-100, 100)),
                         event.get("latitude", random.randrange(-100, 100)))
-        attempt = Event(event["username"], event["password"], target, attacker)
+        attempt = Event(event["username"], event["password"], event["clientVersion"], target, attacker)
         print(event)
         COORDINATOR.accept(attempt)

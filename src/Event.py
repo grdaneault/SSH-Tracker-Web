@@ -4,9 +4,10 @@ import json
 class Event():
     # __slots__ = ("username", "password", "target", "attacker")
 
-    def __init__(self, username, password, target, attacker):
+    def __init__(self, username, password, client_version, target, attacker):
         self.username = username
         self.password = password
+        self.client_version = client_version
         self.target = target
         self.attacker = attacker
 
